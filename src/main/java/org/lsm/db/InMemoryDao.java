@@ -11,6 +11,7 @@ import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class InMemoryDao implements Dao<MemorySegment, Entry<MemorySegment>> {
+
     protected final ConcurrentSkipListMap<MemorySegment, Entry<MemorySegment>> entriesMap;
     protected final Comparator<MemorySegment> comparator = (first, second) -> {
         if (first == null || second == null) return -1;
