@@ -1,6 +1,6 @@
 package org.lsm.db.table;
 
-import org.lsm.db.Cell;
+import org.lsm.Entry;
 import org.lsm.db.iterator.PeekTableIterator;
 
 import java.io.Closeable;
@@ -9,7 +9,7 @@ import java.lang.foreign.MemorySegment;
 
 public interface TableMap<K, V> extends Closeable {
 
-    Cell<MemorySegment> getCell(K key);
+    Entry<MemorySegment> getEntry(K key);
 
     K ceilKey(K key);
 
@@ -20,4 +20,8 @@ public interface TableMap<K, V> extends Closeable {
     int size() throws IOException;
 
     PeekTableIterator<K> keyIterator(K key, K to);
+
+    boolean contains(K sstKey);
+
+    boolean isTombstone(Entry<K> entry);
 }
