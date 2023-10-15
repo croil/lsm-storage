@@ -1,6 +1,6 @@
 package org.lsm.db.table;
 
-import org.lsm.Entry;
+import org.lsm.db.Cell;
 import org.lsm.db.iterator.PeekTableIterator;
 
 import java.io.Closeable;
@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public interface TableMap<K, V> extends Closeable {
 
-    Entry<K> getEntry(K key);
+    Cell<K> getCell(K key);
 
     K ceilKey(K key);
 
@@ -18,5 +18,5 @@ public interface TableMap<K, V> extends Closeable {
 
     int size() throws IOException;
 
-    PeekTableIterator<K> iterator(K key, K to);
+    PeekTableIterator<K> keyIterator(K key, K to);
 }
