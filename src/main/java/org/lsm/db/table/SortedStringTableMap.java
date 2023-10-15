@@ -1,7 +1,7 @@
 package org.lsm.db.table;
 
-import org.lsm.db.Cell;
-import org.lsm.db.MemorySegmentCell;
+import org.lsm.BaseEntry;
+import org.lsm.Entry;
 import org.lsm.db.Utils;
 import org.lsm.db.iterator.PeekTableIterator;
 
@@ -30,8 +30,6 @@ public class SortedStringTableMap implements TableMap<MemorySegment, MemorySegme
     private final int sstNumber;
 
     private final Comparator<MemorySegment> comparator;
-
-    private final Cell.Factory<MemorySegment> factory = new MemorySegmentCell.CellFactory();
 
     public SortedStringTableMap(Path path, int sstNumber, Comparator<MemorySegment> comparator) {
         try {
@@ -64,14 +62,14 @@ public class SortedStringTableMap implements TableMap<MemorySegment, MemorySegme
 
 
     @Override
-    public Cell<MemorySegment> getCell(MemorySegment key) {
+    public Entry<MemorySegment> getEntry(MemorySegment key) {
         int index = binarySearch(key);
         MemorySegment rawKey = getKeyByIndex(index);
         if (comparator.compare(rawKey, key) != 0) {
             return null;
         }
         MemorySegment value = getValueByIndex(index);
-        return factory.create(key, value);
+        return new BaseEntry<>(key, value);
     }
 
 
@@ -106,6 +104,16 @@ public class SortedStringTableMap implements TableMap<MemorySegment, MemorySegme
             }
         };
         return new PeekTableIterator<>(iterator, sstNumber);
+    }
+
+    @Override
+    public boolean contains(MemorySegment key) {
+        return comparator.compare(key, ceilKey(key)) == 0;
+    }
+
+    @Override
+    public boolean isTombstone(Entry<MemorySegment> entry) {
+        return entry.value() == null && contains(entry.key());
     }
 
 
