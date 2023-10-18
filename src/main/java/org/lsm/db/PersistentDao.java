@@ -1,15 +1,13 @@
-package org.lsm.db.dao;
+package org.lsm.db;
 
 import org.lsm.BaseEntry;
 import org.lsm.Entry;
-import org.lsm.db.Utils;
-import org.lsm.db.exceptions.FileChannelException;
 
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
@@ -27,13 +25,19 @@ public class PersistentDao extends InMemoryDao {
     };
 
     public PersistentDao(Path path) {
-        this.path = path.resolve("data.txt");
+        try {
+            this.path = path.resolve("data.txt");
+        } catch (InvalidPathException ex) {
+            throw new RuntimeException("Error resolving path: " + ex.getMessage());
+        }
         this.arena = Arena.ofConfined();
     }
 
     @Override
     public void flush() throws IOException {
-        try (FileChannel sst = FileChannel.open(path, openOptions)) {
+        try (FileChannel sst = FileChannel.open(path, openOptions);
+             Arena arena = Arena.ofConfined()
+        ) {
             long metaSize = super.getMetaDataSize();
             long sstOffset = 0L;
             long indexOffset = Utils.writeLong(sst, 0L, entriesMap.size());
@@ -70,14 +74,12 @@ public class PersistentDao extends InMemoryDao {
         if (entry != null) {
             return entry;
         }
-        if (Files.notExists(path)) {
-            return null;
-        }
         try (FileChannel sstChannel = FileChannel.open(path, StandardOpenOption.READ)) {
             return binarySearch(sstChannel, key);
         } catch (IOException e) {
-            throw new FileChannelException("Couldn't open file " + path, e);
+            System.err.printf("Couldn't open file %s: %s%n", path, e.getMessage());
         }
+        return null;
     }
 
     private Entry<MemorySegment> binarySearch(FileChannel sst, MemorySegment key) throws IOException {
