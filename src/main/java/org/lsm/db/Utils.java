@@ -1,20 +1,14 @@
 package org.lsm.db;
 
-import org.lsm.BaseEntry;
-import org.lsm.Entry;
-
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
 public final class Utils {
-
-    public static final Entry<MemorySegment> EMPTY = new BaseEntry<>(MemorySegment.NULL, MemorySegment.NULL);
-    public static final long FOOTER_SIZE = 2 * Long.BYTES;
-
-
     /**
      * No instances.
      */
@@ -29,30 +23,60 @@ public final class Utils {
     public static int filesCount(Path path) {
         try (Stream<Path> files = Files.list(path)) {
             return Math.toIntExact(files.count());
+        } catch (ArithmeticException ex) {
+            System.err.printf("Overflow in amount of files by path %s%n", path);
         } catch (IOException ex) {
-            return 0;
+            System.err.printf("Couldn't calc amount of files in directory %s: %s", path, ex.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * Copy from one MemorySegment to another and return new offset of two segments.
+     */
+    public static long copyToSegment(MemorySegment to, MemorySegment from, long offset) {
+        MemorySegment source = from == null ? MemorySegment.NULL : from;
+        MemorySegment.copy(source, 0, to, offset, source.byteSize());
+        return offset + source.byteSize();
+    }
+
+    /**
+     * Writes long value into file opened in FileChannel.
+     * Returns new offset of fileChannel.
+     */
+    public static long writeLong(FileChannel channel, long offset, long value) {
+        try {
+            channel.position(offset);
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.putLong(value);
+            buffer.flip();
+            int bytes = channel.write(buffer);
+            return offset + bytes;
+        } catch (IOException ex) {
+            RuntimeException runtimeException = new RuntimeException(
+                    String.format("Exception while writing long from position %s: %s", offset, ex.getMessage())
+            );
+            runtimeException.addSuppressed(ex);
+            throw runtimeException;
         }
     }
 
     /**
-     * Return index length of SSTable file.
-     * Metadata contains amount of entries in sst, offsets and size of keys.
-     * It has the following format: <var>keyOff1:valOff1 keyOff2:valOff2 ...
-     * keyOff_n:valOff_n keyOff_n+1:valOff_n+1</var>
-     * without any : and spaces.
+     * Read long value from file opened in FileChannel.
      */
-    public static long indexByteSize(long size) {
-        return 2L * (size + 1) * Long.BYTES;
+    public static long readLong(FileChannel channel, long offset) {
+        try {
+            channel.position(offset);
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            channel.read(buffer);
+            buffer.flip();
+            return buffer.getLong();
+        } catch (IOException ex) {
+            RuntimeException runtimeException = new RuntimeException(
+                    String.format("Exception while reading long from position %s: %s", offset, ex.getMessage())
+            );
+            runtimeException.addSuppressed(ex);
+            throw runtimeException;
+        }
     }
-
-    public static Path sstTablePath(Path path, long suffix) {
-        String fileName = String.format("data-%s.txt", suffix);
-        return path.resolve(Path.of(fileName));
-    }
-
-    public static Path generateTempPath(Path path) {
-        String fileName = String.format("temp-%s.tmp", System.currentTimeMillis());
-        return path.resolve(Path.of(fileName));
-    }
-
 }

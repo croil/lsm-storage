@@ -2,20 +2,17 @@ package org.lsm.db.dao;
 
 import org.lsm.Dao;
 import org.lsm.Entry;
-import org.lsm.db.table.KeyComparator;
 import org.lsm.db.table.MemTable;
 
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.util.Comparator;
 import java.util.Iterator;
 
 public class InMemoryDao implements Dao<MemorySegment, Entry<MemorySegment>> {
-    private final MemTable memTable;
+    protected final MemTable memTable;
 
     public InMemoryDao() {
-        this.memTable = new MemTable(new KeyComparator());
+        this.memTable = new MemTable();
     }
 
     @Override

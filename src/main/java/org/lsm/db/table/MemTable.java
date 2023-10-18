@@ -4,39 +4,28 @@ import org.lsm.Entry;
 import org.lsm.db.iterator.TableIterator;
 
 import java.lang.foreign.MemorySegment;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class MemTable implements Table<MemorySegment> {
+public class MemTable extends AbstractTable implements Iterable<Entry<MemorySegment>> {
 
     private final ConcurrentSkipListMap<MemorySegment, Entry<MemorySegment>> entriesMap;
     private final AtomicLong byteSize;
 
-    public MemTable(Comparator<MemorySegment> comparator) {
+    public MemTable() {
         this.entriesMap = new ConcurrentSkipListMap<>(comparator);
         this.byteSize = new AtomicLong();
     }
 
     public void upsert(Entry<MemorySegment> entry) {
-        updateByteSize(entry);
+        byteSize.addAndGet(entry.key().byteSize() + (entry.value() == null ? 0 : entry.value().byteSize()));
         entriesMap.put(entry.key(), entry);
     }
 
-    private void updateByteSize(Entry<MemorySegment> entry) {
-        if (entriesMap.containsKey(entry.key())) {
-            var oldValue = entriesMap.get(entry.key()).value();
-            byteSize.addAndGet(oldValue == null ? 0 : -oldValue.byteSize());
-        } else {
-            byteSize.addAndGet(entry.key().byteSize());
-        }
-        byteSize.addAndGet(entry.value() == null ? 0 : entry.value().byteSize());
-    }
-
     @Override
-    public int rows() {
+    public int size() {
         return entriesMap.size();
     }
 
@@ -65,11 +54,20 @@ public class MemTable implements Table<MemorySegment> {
         };
     }
 
-    @Override
     public long byteSize() {
         return this.byteSize.get();
     }
 
+    /**
+     * Return metadata length of SSTable file.
+     * Metadata contains amount of entries in sst, offsets and size of keys.
+     * It has the following format: <var>size keyOff1:valOff1 keyOff2:valOff2 ...
+     * keyOff_n:valOff_n keyOff_n+1:valOff_n+1</var>
+     * without any : and spaces.
+     */
+    public long getMetaDataSize() {
+        return 2L * (entriesMap.size() + 1) * Long.BYTES + Long.BYTES;
+    }
 
     private NavigableMap<MemorySegment, Entry<MemorySegment>> getSubMap(MemorySegment from, boolean fromInclusive,
                                                                         MemorySegment to, boolean toInclusive) {
@@ -87,12 +85,16 @@ public class MemTable implements Table<MemorySegment> {
 
     @Override
     public void close() {
-        clear();
+        entriesMap.clear();
+        byteSize.set(0);
+    }
+
+    public boolean isTombstone(MemorySegment key) {
+        return entriesMap.containsKey(key) && entriesMap.get(key).value() == null;
     }
 
     @Override
-    public void clear() {
-        entriesMap.clear();
-        byteSize.set(0);
+    public Iterator<Entry<MemorySegment>> iterator() {
+        return entriesMap.values().iterator();
     }
 }

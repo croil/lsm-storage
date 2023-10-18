@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class MergeIterator implements Iterator<Entry<MemorySegment>> {
     private final Queue<Candidate<MemorySegment>> queue;
-    private Entry<MemorySegment> minEntry;
+    private Entry<MemorySegment> entry;
     private MemorySegment lowerBoundKey;
     private final Comparator<MemorySegment> memoryComparator;
 
@@ -23,10 +23,10 @@ public class MergeIterator implements Iterator<Entry<MemorySegment>> {
                 .map(it -> new Candidate<>(it, memoryComparator))
                 .filter(Candidate::nonLast)
                 .collect(Collectors.toCollection(PriorityBlockingQueue::new));
-        minEntry = getMinEntry();
+        entry = getEntry();
     }
 
-    private Entry<MemorySegment> getMinEntry() {
+    private Entry<MemorySegment> getEntry() {
         if (queue.isEmpty()) {
             return null;
         }
@@ -54,13 +54,13 @@ public class MergeIterator implements Iterator<Entry<MemorySegment>> {
 
     @Override
     public boolean hasNext() {
-        return this.minEntry != null;
+        return this.entry != null;
     }
 
     @Override
     public Entry<MemorySegment> next() {
-        var entry = this.minEntry;
-        this.minEntry = getMinEntry();
+        var entry = this.entry;
+        this.entry = getEntry();
         return entry;
     }
 }
