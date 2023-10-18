@@ -1,6 +1,9 @@
 package org.lsm.db;
 
+import org.lsm.Entry;
+
 import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
