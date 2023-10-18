@@ -1,4 +1,4 @@
-package org.lsm.db;
+package org.lsm.db.dao;
 
 import org.lsm.Dao;
 import org.lsm.Entry;
