@@ -52,7 +52,6 @@ public class TablesOrganizer implements Closeable {
 
     public Iterator<Entry<MemorySegment>> mergeIterator(MemorySegment from, boolean fromInclusive,
                                                         MemorySegment to, boolean toInclusive) {
-
         return new MergeIterator(
                 createIteratorsList(from, fromInclusive, to, toInclusive),
                 memTable.comparator()
