@@ -1,6 +1,5 @@
 package org.lsm.db;
 
-
 import org.lsm.Entry;
 import org.lsm.db.iterator.MergeIterator;
 import org.lsm.db.iterator.TableIterator;
@@ -13,7 +12,6 @@ import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.channels.FileChannel;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
@@ -42,13 +40,11 @@ public class TablesOrganizer implements Closeable {
             StandardOpenOption.WRITE,
     };
 
-
     public TablesOrganizer(Path path, MemTable memTable) {
         this.memTable = memTable;
         this.path = path;
         this.tables = createTablesList();
     }
-
 
     public Iterator<Entry<MemorySegment>> mergeIterator(MemorySegment from, boolean fromInclusive,
                                                         MemorySegment to, boolean toInclusive) {
@@ -59,30 +55,25 @@ public class TablesOrganizer implements Closeable {
     }
 
     public void flushMemTable() throws IOException {
-        try {
-            Path sstPath = sstTablePath(tables.size());
-            try (FileChannel sst = FileChannel.open(sstPath, openOptions);
-                 Arena arena = Arena.ofConfined()
-            ) {
-                long metaSize = memTable.getMetaDataSize();
-                long sstOffset = 0L;
-                long indexOffset = Utils.writeLong(sst, 0L, memTable.size());
-                MemorySegment sstMap = sst.map(FileChannel.MapMode.READ_WRITE, metaSize, memTable.byteSize(), arena);
-                for (Entry<MemorySegment> entry : memTable) {
-                    long keyOffset = sstOffset + metaSize;
-                    long valueOffset = keyOffset + entry.key().byteSize();
-                    valueOffset *= memTable.isTombstone(entry.key()) ? -1 : 1;
-                    indexOffset = writePosToFile(sst, indexOffset, keyOffset, valueOffset);
-                    sstOffset = copyToSegment(sstMap, entry.key(), sstOffset);
-                    sstOffset = copyToSegment(sstMap, entry.value(), sstOffset);
-                }
-                writePosToFile(sst, indexOffset, sstOffset + metaSize, 0L);
+        Path sstPath = sstTablePath(tables.size());
+        try (FileChannel sst = FileChannel.open(sstPath, openOptions);
+             Arena arena = Arena.ofConfined()
+        ) {
+            long metaSize = memTable.getMetaDataSize();
+            long sstOffset = 0L;
+            long indexOffset = Utils.writeLong(sst, 0L, memTable.size());
+            MemorySegment sstMap = sst.map(FileChannel.MapMode.READ_WRITE, metaSize, memTable.byteSize(), arena);
+            for (Entry<MemorySegment> entry : memTable) {
+                long keyOffset = sstOffset + metaSize;
+                long valueOffset = keyOffset + entry.key().byteSize();
+                valueOffset *= memTable.isTombstone(entry.key()) ? -1 : 1;
+                indexOffset = writePosToFile(sst, indexOffset, keyOffset, valueOffset);
+                sstOffset = copyToSegment(sstMap, entry.key(), sstOffset);
+                sstOffset = copyToSegment(sstMap, entry.value(), sstOffset);
             }
-        } catch (InvalidPathException ex) {
-            throw new RuntimeException("Failed by path: " + ex.getMessage());
+            writePosToFile(sst, indexOffset, sstOffset + metaSize, 0L);
         }
     }
-
 
     @Override
     public void close() throws IOException {
@@ -91,7 +82,6 @@ public class TablesOrganizer implements Closeable {
         }
         tables.clear();
     }
-
 
     private List<AbstractTable> createTablesList() {
         Stream<AbstractTable> memStream = Stream.of(memTable);
@@ -113,8 +103,8 @@ public class TablesOrganizer implements Closeable {
         return path.resolve(Path.of(fileName));
     }
 
-
-    private long writePosToFile(FileChannel channel, long offset, long keyOff, long valOff) {
+    private long writePosToFile(FileChannel channel, long rawOffset, long keyOff, long valOff) {
+        long offset = rawOffset;
         offset = Utils.writeLong(channel, offset, keyOff);
         offset = Utils.writeLong(channel, offset, valOff);
         return offset;

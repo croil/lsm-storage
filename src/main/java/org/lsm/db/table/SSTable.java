@@ -3,6 +3,7 @@ package org.lsm.db.table;
 import org.lsm.BaseEntry;
 import org.lsm.Entry;
 import org.lsm.db.Utils;
+import org.lsm.db.exceptions.FileChannelException;
 import org.lsm.db.iterator.TableIterator;
 
 import java.io.IOException;
@@ -34,7 +35,7 @@ public class SSTable extends AbstractTable {
             this.sstNumber = sstNumber;
             this.arena = Arena.ofConfined();
         } catch (IOException ex) {
-            throw new RuntimeException("Couldn't create FileChannel by path" + path);
+            throw new FileChannelException("Couldn't create FileChannel by path" + path, ex);
         }
     }
 
@@ -42,25 +43,25 @@ public class SSTable extends AbstractTable {
     public void close() {
         try {
             this.sstChannel.close();
-            this.arena.close();
+            if (arena.scope().isAlive()) {
+                arena.close();
+            }
         } catch (IOException e) {
-            System.err.printf("Couldn't close file channel: %s%n", sstChannel);
+            throw new FileChannelException("Couldn't close file channel " + sstChannel, e);
         }
     }
-
 
     @Override
     public int size() {
         return size;
     }
 
-
     @Override
     public TableIterator<MemorySegment> tableIterator(MemorySegment from, boolean fromInclusive,
                                                       MemorySegment to, boolean toInclusive) {
         return new TableIterator<>() {
-            int start = setFrom();
-            final int end = setTo();
+            int start = (from == null ? 0 : binarySearch(from)) + Boolean.compare(!fromInclusive, false);
+            final int end = (to == null ? size : binarySearch(to)) + Boolean.compare(toInclusive, true);
 
             @Override
             public int getTableNumber() {
@@ -74,23 +75,7 @@ public class SSTable extends AbstractTable {
 
             @Override
             public Entry<MemorySegment> next() {
-                MemorySegment key = getKeyByIndex(start);
-                MemorySegment value = getValueByIndex(start);
-                start++;
-                return new BaseEntry<>(key, value);
-            }
-
-            private int setFrom() {
-                int position = from == null ? 0 : binarySearch(from);
-                if (!fromInclusive && comparator.compare(getKeyByIndex(position), from) == 0) {
-                    position++;
-                }
-                return position;
-            }
-
-            private int setTo() {
-                int position = to == null ? size : binarySearch(to);
-                return position + Boolean.compare(toInclusive, true); // TODO: reverse?
+                return new BaseEntry<>(getKeyByIndex(start), getValueByIndex(start++));
             }
         };
     }
@@ -99,15 +84,7 @@ public class SSTable extends AbstractTable {
         Objects.checkIndex(index, size);
         long keyOffset = getKeyOffset(index);
         long valueOffset = Math.abs(getValueOffset(index));
-        try (Arena arena = Arena.ofConfined()){
-            MemorySegment back = this.arena.allocate(valueOffset - keyOffset);
-            back.copyFrom(sstChannel.map(FileChannel.MapMode.READ_ONLY, keyOffset, valueOffset - keyOffset, arena));
-            return back;
-        } catch (IOException ex) {
-            throw new RuntimeException(
-                    String.format("Couldn't map file from channel %s: %s", sstChannel, ex.getMessage())
-            );
-        }
+        return copyToArena(keyOffset, valueOffset);
     }
 
     private MemorySegment getValueByIndex(int index) {
@@ -117,14 +94,17 @@ public class SSTable extends AbstractTable {
             return null;
         }
         long nextKeyOffset = getKeyOffset(index + 1);
-        try (Arena arena = Arena.ofConfined()){
-            MemorySegment back = this.arena.allocate(nextKeyOffset - valueOffset);
-            back.copyFrom(sstChannel.map(FileChannel.MapMode.READ_ONLY, valueOffset, nextKeyOffset - valueOffset, arena));
-            return back;
+        return copyToArena(valueOffset, nextKeyOffset);
+    }
+
+    private MemorySegment copyToArena(long valOffset, long nextOffset) {
+        try (Arena mapArena = Arena.ofConfined()) {
+            var mappedMem = sstChannel.map(FileChannel.MapMode.READ_ONLY, valOffset, nextOffset - valOffset, mapArena);
+            var nativeMem = arena.allocate(mappedMem.byteSize());
+            Utils.copyToSegment(nativeMem, mappedMem, 0);
+            return nativeMem;
         } catch (IOException ex) {
-            throw new RuntimeException(
-                    String.format("Couldn't map file from channel %s: %s", sstChannel, ex.getMessage())
-            );
+            throw new FileChannelException("Couldn't map file from channel " + sstChannel, ex);
         }
     }
 

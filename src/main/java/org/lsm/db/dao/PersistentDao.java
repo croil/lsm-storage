@@ -8,7 +8,6 @@ import java.lang.foreign.MemorySegment;
 import java.nio.file.Path;
 import java.util.Iterator;
 
-
 public class PersistentDao extends InMemoryDao {
     /**
      * Organizer class, that controls all sst tables.
@@ -18,7 +17,6 @@ public class PersistentDao extends InMemoryDao {
     public PersistentDao(Path path) {
         this.organizer = new TablesOrganizer(path, memTable);
     }
-
 
     @Override
     public void flush() throws IOException {
@@ -36,7 +34,6 @@ public class PersistentDao extends InMemoryDao {
     public Iterator<Entry<MemorySegment>> get(MemorySegment from, MemorySegment to) {
         return organizer.mergeIterator(from, true, to, false);
     }
-
 
     @Override
     public Entry<MemorySegment> get(MemorySegment key) {

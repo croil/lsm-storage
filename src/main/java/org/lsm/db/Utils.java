@@ -1,9 +1,9 @@
 package org.lsm.db;
 
-import org.lsm.Entry;
+import org.lsm.db.exceptions.ReadFailureException;
+import org.lsm.db.exceptions.WriteFailureException;
 
 import java.io.IOException;
-import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -11,7 +11,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-public class Utils {
+public final class Utils {
+    /**
+     * No instances.
+     */
+    private Utils() {
+    }
 
     /**
      * Executes amount of files by path.
@@ -21,12 +26,9 @@ public class Utils {
     public static int filesCount(Path path) {
         try (Stream<Path> files = Files.list(path)) {
             return Math.toIntExact(files.count());
-        } catch (ArithmeticException ex) {
-            System.err.printf("Overflow in amount of files by path %s%n", path);
         } catch (IOException ex) {
-            System.err.printf("Couldn't calc amount of files in directory %s: %s", path, ex.getMessage());
+            return 0;
         }
-        return -1;
     }
 
     /**
@@ -51,9 +53,7 @@ public class Utils {
             int bytes = channel.write(buffer);
             return offset + bytes;
         } catch (IOException ex) {
-            throw new RuntimeException(
-                    String.format("Exception while writing long from position %s: %s", offset, ex.getMessage())
-            );
+            throw new WriteFailureException("Failed to write long" + value + "value from position" + offset, ex);
         }
     }
 
@@ -68,9 +68,7 @@ public class Utils {
             buffer.flip();
             return buffer.getLong();
         } catch (IOException ex) {
-            throw new RuntimeException(
-                    String.format("Exception while reading long from position %s: %s", offset, ex.getMessage())
-            );
+            throw new ReadFailureException("Failed to write long value from position" + offset, ex);
         }
     }
 }
