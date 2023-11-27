@@ -2,6 +2,7 @@ package org.lsm.db.dao;
 
 import org.lsm.Entry;
 import org.lsm.db.TablesOrganizer;
+import org.lsm.db.Utils;
 
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
@@ -38,5 +39,20 @@ public class PersistentDao extends InMemoryDao {
     @Override
     public Entry<MemorySegment> get(MemorySegment key) {
         return organizer.mergeIterator(key, true, key, true).next();
+    }
+
+    @Override
+    public Iterator<Entry<MemorySegment>> allFrom(MemorySegment from) {
+        return get(from, Utils.RIGHT);
+    }
+
+    @Override
+    public Iterator<Entry<MemorySegment>> allTo(MemorySegment to) {
+        return get(Utils.LEFT, to);
+    }
+
+    @Override
+    public Iterator<Entry<MemorySegment>> all() {
+        return get(Utils.LEFT, Utils.RIGHT);
     }
 }
