@@ -1,4 +1,4 @@
-package org.lsm;
+package org.lsm.db;
 
 import java.nio.file.Path;
 

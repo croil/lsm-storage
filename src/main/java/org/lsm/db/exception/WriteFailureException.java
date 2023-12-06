@@ -1,4 +1,4 @@
-package org.lsm.db.exceptions;
+package org.lsm.db.exception;
 
 public class WriteFailureException extends RuntimeException {
     public WriteFailureException(String message) {

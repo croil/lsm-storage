@@ -1,7 +1,7 @@
 package org.lsm.db.utils;
 
-import org.lsm.BaseEntry;
-import org.lsm.Entry;
+import org.lsm.db.entry.BaseEntry;
+import org.lsm.db.entry.Entry;
 
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;

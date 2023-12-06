@@ -1,6 +1,6 @@
 package org.lsm.db.table;
 
-import org.lsm.Entry;
+import org.lsm.db.entry.Entry;
 
 import java.io.Closeable;
 import java.lang.foreign.MemorySegment;

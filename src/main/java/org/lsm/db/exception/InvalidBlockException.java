@@ -1,4 +1,4 @@
-package org.lsm.db.exceptions;
+package org.lsm.db.exception;
 
 public class InvalidBlockException extends RuntimeException {
     public InvalidBlockException(String message) {

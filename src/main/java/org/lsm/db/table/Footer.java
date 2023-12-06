@@ -1,6 +1,6 @@
 package org.lsm.db.table;
 
-import org.lsm.db.exceptions.InvalidBlockException;
+import org.lsm.db.exception.InvalidBlockException;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;

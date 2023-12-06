@@ -1,7 +1,7 @@
 package org.lsm.db.table;
 
-import org.lsm.Entry;
-import org.lsm.db.exceptions.FileChannelException;
+import org.lsm.db.entry.Entry;
+import org.lsm.db.exception.FileChannelException;
 
 import java.io.IOException;
 import java.lang.foreign.Arena;

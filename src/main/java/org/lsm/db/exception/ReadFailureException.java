@@ -1,4 +1,4 @@
-package org.lsm.db.exceptions;
+package org.lsm.db.exception;
 
 public class ReadFailureException extends RuntimeException {
     public ReadFailureException(String message) {

@@ -1,8 +1,7 @@
 package org.lsm.db.dao;
 
-import org.lsm.Dao;
-import org.lsm.Entry;
-import org.lsm.db.exceptions.FileChannelException;
+import org.lsm.db.entry.Entry;
+import org.lsm.db.exception.FileChannelException;
 import org.lsm.db.iterator.MergeIterator;
 import org.lsm.db.table.Footer;
 import org.lsm.db.table.Handle;

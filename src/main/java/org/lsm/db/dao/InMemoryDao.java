@@ -1,7 +1,6 @@
 package org.lsm.db.dao;
 
-import org.lsm.Dao;
-import org.lsm.Entry;
+import org.lsm.db.entry.Entry;
 import org.lsm.db.table.KeyComparator;
 import org.lsm.db.table.MemTable;
 

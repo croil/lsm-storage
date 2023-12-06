@@ -1,4 +1,4 @@
-package org.lsm;
+package org.lsm.db.entry;
 
 public record BaseEntry<Data>(Data key, Data value) implements Entry<Data> {
     @Override

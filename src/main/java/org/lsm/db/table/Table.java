@@ -1,6 +1,6 @@
 package org.lsm.db.table;
 
-import org.lsm.Entry;
+import org.lsm.db.entry.Entry;
 import org.lsm.db.iterator.TableIterator;
 
 import java.io.Closeable;
