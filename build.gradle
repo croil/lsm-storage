@@ -9,6 +9,10 @@ java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
+application {
+    mainClass = "org.lsm.Main"
+}
+
 
 repositories {
     mavenCentral()
@@ -30,11 +34,6 @@ test {
     jvmArgs += ["--enable-preview"]
 }
 
-checkstyle {
-    configFile = new File("checkstyle.xml")
-    checkstyleTest.enabled = false
-}
-
 compileJava {
     options.compilerArgs += ["--enable-preview"]
 }
@@ -42,4 +41,9 @@ compileJava {
 compileTestJava {
     options.compilerArgs += ["--enable-preview"]
 }
+
+run {
+    jvmArgs += ["--enable-preview"]
+}
+
 
