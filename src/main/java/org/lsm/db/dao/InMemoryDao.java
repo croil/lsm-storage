@@ -1,20 +1,37 @@
-package org.lsm.db;
+package org.lsm.db.dao;
 
 import org.lsm.Dao;
 import org.lsm.Entry;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class InMemoryDao implements Dao<MemorySegment, Entry<MemorySegment>> {
+    protected final ConcurrentSkipListMap<MemorySegment, Entry<MemorySegment>> entriesMap;
+    protected final Comparator<MemorySegment> comparator = (first, second) -> {
+        if (first == null || second == null) return -1;
+        long missIndex = first.mismatch(second);
+        if (missIndex == first.byteSize()) {
+            return -1;
+        }
+        if (missIndex == second.byteSize()) {
+            return 1;
+        }
+        return missIndex == -1 ? 0 : Byte.compare(
+                first.getAtIndex(ValueLayout.JAVA_BYTE, missIndex),
+                second.getAtIndex(ValueLayout.JAVA_BYTE, missIndex)
+        );
+    };
 
-    private final ConcurrentSkipListMap<MemorySegment, Entry<MemorySegment>> entriesMap;
+    protected final AtomicLong tableByteSize = new AtomicLong(0);
 
     public InMemoryDao() {
-        this.entriesMap = new ConcurrentSkipListMap<>(this::compareMemorySegment);
+        this.entriesMap = new ConcurrentSkipListMap<>(comparator);
     }
 
     private NavigableMap<MemorySegment, Entry<MemorySegment>> getSubMap(MemorySegment from, MemorySegment to) {
@@ -42,21 +59,11 @@ public class InMemoryDao implements Dao<MemorySegment, Entry<MemorySegment>> {
 
     @Override
     public void upsert(Entry<MemorySegment> entry) {
+        tableByteSize.addAndGet(entry.key().byteSize() + entry.value().byteSize());
         entriesMap.put(entry.key(), entry);
     }
 
-    private int compareMemorySegment(MemorySegment first, MemorySegment second) {
-        if (first == null || second == null) return -1;
-        long missIndex = first.mismatch(second);
-        if (missIndex == first.byteSize()) {
-            return -1;
-        }
-        if (missIndex == second.byteSize()) {
-            return 1;
-        }
-        return missIndex == -1 ? 0 : Byte.compare(
-                first.getAtIndex(ValueLayout.JAVA_BYTE, missIndex),
-                second.getAtIndex(ValueLayout.JAVA_BYTE, missIndex)
-        );
+    protected long getMetaDataSize() {
+        return 2L * (entriesMap.size() + 1) * Long.BYTES + Long.BYTES;
     }
 }
