@@ -1,6 +1,6 @@
 package org.lsm.db;
 
-import org.lsm.Entry;
+import org.lsm.db.entry.Entry;
 import org.lsm.db.iterator.TableIterator;
 
 import java.util.Comparator;

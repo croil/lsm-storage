@@ -1,6 +1,6 @@
 package org.lsm.db.iterator;
 
-import org.lsm.Entry;
+import org.lsm.db.entry.Entry;
 
 import java.util.Iterator;
 

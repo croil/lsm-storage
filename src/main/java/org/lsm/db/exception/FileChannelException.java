@@ -1,4 +1,4 @@
-package org.lsm.db.exceptions;
+package org.lsm.db.exception;
 
 public class FileChannelException extends RuntimeException {
     public FileChannelException(String message) {
